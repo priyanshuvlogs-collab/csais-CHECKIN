@@ -1,0 +1,149 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+// PostgreSQL is the default. To switch to SQLite (e.g. no local Postgres):
+//   1. Change provider to "sqlite"
+//   2. Set DATABASE_URL="file:./dev.db" in .env
+//   3. Delete prisma/migrations and run `npx prisma migrate dev --name init`
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  admin
+  guard
+}
+
+enum CheckinStatus {
+  pending
+  ok
+  late
+  missed
+  cancelled
+}
+
+enum MediaSource {
+  live
+  gallery
+  unverified
+}
+
+model User {
+  id            String   @id @default(cuid())
+  role          Role     @default(guard)
+  name          String
+  nameConfirmed Boolean  @default(false)
+  phone         String?  @unique
+  email         String?  @unique
+  passwordHash  String
+  approved      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+
+  shifts        Shift[]
+  checkins      Checkin[]
+  locations     Location[]
+  notifications Notification[]
+
+  @@index([role])
+}
+
+model Site {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
+
+model Shift {
+  id        String    @id @default(cuid())
+  guardId   String
+  siteName  String
+  startedAt DateTime
+  endedAt   DateTime?
+  active    Boolean   @default(true)
+  createdAt DateTime  @default(now())
+
+  guard     User       @relation(fields: [guardId], references: [id])
+  checkins  Checkin[]
+  locations Location[]
+
+  @@index([active])
+  @@index([guardId])
+  @@index([startedAt])
+}
+
+model Checkin {
+  id              String        @id @default(cuid())
+  shiftId         String
+  guardId         String
+  code            String        @unique
+  sentAt          DateTime
+  deadlineAt      DateTime
+  respondedAt     DateTime?
+  status          CheckinStatus @default(pending)
+  mediaType       String?
+  mediaPath       String?
+  mediaHash       String?
+  isForwarded     Boolean       @default(false)
+  responseSeconds Int?
+  source          MediaSource?
+  extra           Json?
+  createdAt       DateTime      @default(now())
+
+  shift     Shift      @relation(fields: [shiftId], references: [id])
+  guard     User       @relation(fields: [guardId], references: [id])
+  locations Location[]
+
+  @@index([status])
+  @@index([guardId])
+  @@index([shiftId])
+  @@index([sentAt])
+  @@index([mediaHash])
+}
+
+model Location {
+  id         String   @id @default(cuid())
+  guardId    String
+  shiftId    String?
+  checkinId  String?
+  lat        Float
+  lng        Float
+  accuracy   Float?
+  heading    Float?
+  isLive     Boolean  @default(false)
+  livePeriod Int?
+  clientAt   DateTime
+  serverAt   DateTime @default(now())
+  extra      Json?
+
+  guard   User     @relation(fields: [guardId], references: [id])
+  shift   Shift?   @relation(fields: [shiftId], references: [id])
+  checkin Checkin? @relation(fields: [checkinId], references: [id])
+
+  @@index([guardId])
+  @@index([shiftId])
+  @@index([serverAt])
+}
+
+model Notification {
+  id        String    @id @default(cuid())
+  userId    String
+  type      String
+  title     String
+  body      String
+  payload   Json?
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId, createdAt])
+  @@index([userId, readAt])
+}
+
+model Meta {
+  key   String @id
+  value String
+}
