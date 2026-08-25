@@ -11,6 +11,7 @@ const NAV = [
   { href: "/dispatch/sites", label: "Sites" },
   { href: "/dispatch/report", label: "24h report" },
   { href: "/dispatch/admins", label: "Admins" },
+  { href: "/dispatch/help", label: "Help" },
 ];
 
 export default async function DispatchLayout({
