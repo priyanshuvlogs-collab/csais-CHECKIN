@@ -5,9 +5,9 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { signIn } from "next-auth/react";
 
-export default function LoginPage() {
+export default function AdminLoginPage() {
   const router = useRouter();
-  const [identifier, setIdentifier] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -17,13 +17,13 @@ export default function LoginPage() {
     setError(null);
     setBusy(true);
     const res = await signIn("credentials", {
-      identifier,
+      identifier: email,
       password,
       redirect: false,
     });
     setBusy(false);
     if (res?.error) {
-      setError("Wrong email/phone or password. Try again.");
+      setError("Wrong email or password. Try again.");
       return;
     }
     router.push("/");
@@ -33,23 +33,27 @@ export default function LoginPage() {
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-4 py-10">
       <h1 className="text-center text-3xl font-black tracking-tight">
-        CSAIS <span className="text-accent">GUARD</span>
+        CSAIS <span className="text-warn">DISPATCH</span>
       </h1>
       <p className="mt-1 text-center text-sm text-muted">
-        Guard panel — log in to start your shift
+        Admin panel — dispatch and supervisors only
       </p>
 
-      <form onSubmit={onSubmit} className="mt-8 space-y-4 rounded-xl border border-line bg-surface p-6">
+      <form
+        onSubmit={onSubmit}
+        className="mt-8 space-y-4 rounded-xl border-2 border-warn/50 bg-surface p-6"
+      >
         <div>
-          <label className="mb-1 block text-sm font-semibold" htmlFor="identifier">
-            Email or mobile phone
+          <label className="mb-1 block text-sm font-semibold" htmlFor="email">
+            Admin email
           </label>
           <input
-            id="identifier"
-            className="w-full rounded-lg border border-line bg-surface-2 px-4 py-3 text-lg outline-none focus:border-accent"
-            value={identifier}
-            onChange={(e) => setIdentifier(e.target.value)}
-            placeholder="4165551234"
+            id="email"
+            type="email"
+            className="w-full rounded-lg border border-line bg-surface-2 px-4 py-3 text-lg outline-none focus:border-warn"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="admin@csais.local"
             autoComplete="username"
             required
           />
@@ -61,7 +65,7 @@ export default function LoginPage() {
           <input
             id="password"
             type="password"
-            className="w-full rounded-lg border border-line bg-surface-2 px-4 py-3 text-lg outline-none focus:border-accent"
+            className="w-full rounded-lg border border-line bg-surface-2 px-4 py-3 text-lg outline-none focus:border-warn"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             autoComplete="current-password"
@@ -76,23 +80,20 @@ export default function LoginPage() {
         <button
           type="submit"
           disabled={busy}
-          className="w-full rounded-lg bg-accent px-4 py-4 text-lg font-bold text-black disabled:opacity-50"
+          className="w-full rounded-lg bg-warn px-4 py-4 text-lg font-bold text-black disabled:opacity-50"
         >
-          {busy ? "Logging in..." : "Log in"}
+          {busy ? "Logging in..." : "Log in to dispatch"}
         </button>
       </form>
 
       <p className="mt-6 text-center text-sm text-muted">
-        New guard?{" "}
-        <Link href="/register" className="font-bold text-accent underline">
-          Register here
+        Are you a guard?{" "}
+        <Link href="/login" className="font-bold text-accent underline">
+          Use the guard login
         </Link>
       </p>
-      <p className="mt-2 text-center text-sm text-muted">
-        Dispatch / supervisor?{" "}
-        <Link href="/admin/login" className="font-bold text-warn underline">
-          Use the admin login
-        </Link>
+      <p className="mt-2 text-center text-xs text-muted">
+        Admin accounts are created by an existing admin under Dispatch → Admins.
       </p>
     </main>
   );

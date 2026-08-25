@@ -30,6 +30,23 @@ timestamps so dispatch can call them.
   across restarts).
 - All timestamps stored in **UTC**, displayed in **America/Toronto**.
 
+## Panels and guides
+
+The app has two fully separated panels:
+
+- **Guard panel** (`/app`, login at `/login`, register at `/register`) —
+  phone-first, one guided step at a time. Guards never see admin menus.
+- **Dispatch admin panel** (`/dispatch`, login at `/admin/login`) — the live
+  board, alerts, reports and management pages. Admins are redirected here
+  automatically.
+
+Step-by-step user guides (also available in-app via the **Help** links):
+
+- [Guard panel guide](docs/GUARD_GUIDE.md) — register, start a shift, answer
+  pings with the camera, GPS, end shift.
+- [Admin panel guide](docs/ADMIN_GUIDE.md) — live board sections, the
+  missed-check-in drill, ping now, reports, guards/sites/admins management.
+
 ## Tech stack
 
 Next.js 15 (App Router, TypeScript, RSC) · Tailwind CSS 4 · PostgreSQL via
