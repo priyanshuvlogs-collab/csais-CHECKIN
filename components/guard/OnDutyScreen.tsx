@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CameraCapture } from "./CameraCapture";
 import { fmtCountdown, fmtElapsed, fmtTime } from "@/lib/time";
+import { deviceHeaders } from "@/lib/deviceId";
 
 type GuardState = {
   serverNow: string;
@@ -65,7 +66,7 @@ export function OnDutyScreen() {
   async function postGps(pos: GeolocationPosition, isLive: boolean, livePeriod: number | null) {
     const res = await fetch("/api/gps", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...deviceHeaders() },
       body: JSON.stringify({
         lat: pos.coords.latitude,
         lng: pos.coords.longitude,

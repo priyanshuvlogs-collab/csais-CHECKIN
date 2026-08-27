@@ -45,6 +45,7 @@ model User {
   checkins      Checkin[]
   locations     Location[]
   notifications Notification[]
+  securityFlags SecurityFlag[]
 
   @@index([role])
 }
@@ -63,11 +64,15 @@ model Shift {
   startedAt DateTime
   endedAt   DateTime?
   active    Boolean   @default(true)
+  // Device baseline captured at shift start: { ip, userAgent, deviceId }.
+  // Later requests are compared against it to detect device/IP switching.
+  extra     Json?
   createdAt DateTime  @default(now())
 
-  guard     User       @relation(fields: [guardId], references: [id])
+  guard     User           @relation(fields: [guardId], references: [id])
   checkins  Checkin[]
   locations Location[]
+  flags     SecurityFlag[]
 
   @@index([active])
   @@index([guardId])
@@ -146,4 +151,29 @@ model Notification {
 model Meta {
   key   String @id
   value String
+}
+
+// Anti-cheat audit trail. Every suspicious signal becomes a row here so
+// dispatch can review attempts even when the request itself was rejected.
+model SecurityFlag {
+  id        String   @id @default(cuid())
+  guardId   String
+  shiftId   String?
+  checkinId String?
+  // clock_skew | ip_change | device_change | impossible_speed | mock_gps |
+  // gps_time_mismatch | gallery_rejected | file_picker_rejected |
+  // reused_media_rejected | long_video_rejected
+  type      String
+  severity  String   // info | warn | critical
+  detail    String
+  meta      Json?
+  createdAt DateTime @default(now())
+
+  guard User @relation(fields: [guardId], references: [id])
+  shift Shift? @relation(fields: [shiftId], references: [id])
+
+  @@index([guardId, createdAt])
+  @@index([shiftId])
+  @@index([createdAt])
+  @@index([severity])
 }

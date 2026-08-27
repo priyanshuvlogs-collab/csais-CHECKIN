@@ -67,6 +67,17 @@ const SECTIONS: { title: string; body: string[] }[] = [
     ],
   },
   {
+    title: "Security page (anti-cheat)",
+    body: [
+      "Dispatch → Security lists every anti-cheat flag from the last 7 days.",
+      "Time cheating is impossible by design: all deadlines use the SERVER clock, so changing the phone's time never extends a window. A badly wrong device clock is still flagged.",
+      "Each shift is bound to the phone and network it started on. If a different device or a new IP address answers mid-shift (VPN, someone else doing the check-ins), you get a flag — device changes are CRITICAL.",
+      "GPS points are checked for impossible jumps (teleporting), mock-provider signatures (perfect accuracy), and replayed fixes with wrong timestamps.",
+      "Rejected upload attempts (gallery files, reused files, over-length videos, file-picker uploads) are logged as flags too, so you can see who TRIED to cheat even though the upload never counted.",
+      "Guards with flags show a red ⚠ badge on the live board — click it to review.",
+    ],
+  },
+  {
     title: "Admins page",
     body: [
       "Add a new admin with name, email and password. Every admin receives every notification.",

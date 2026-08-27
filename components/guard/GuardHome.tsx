@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { deviceHeaders } from "@/lib/deviceId";
 
 type Props = {
   hasPhone: boolean;
@@ -49,8 +50,8 @@ export function GuardHome({ hasPhone, hasName, currentName, currentPhone }: Prop
     setBusy(true);
     const res = await fetch("/api/shift/start", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ siteName }),
+      headers: { "Content-Type": "application/json", ...deviceHeaders() },
+      body: JSON.stringify({ siteName, clientNow: Date.now() }),
     });
     const data = await res.json();
     setBusy(false);

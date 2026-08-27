@@ -4,6 +4,12 @@ import { getSessionUser } from "@/lib/auth";
 import { sha256, storeMedia, verdictForUpload } from "@/lib/media";
 import { notifyAdmins } from "@/lib/notify";
 import { fmtDateTime } from "@/lib/time";
+import {
+  checkClockSkew,
+  checkShiftDeviceIntegrity,
+  getRequestContext,
+  raiseFlag,
+} from "@/lib/security";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -51,6 +57,20 @@ export async function POST(req: Request) {
   }
   const wasMissed = checkin.status === "missed";
 
+  // Anti-cheat: same device/IP as shift start? Device clock sane?
+  const ctx = getRequestContext(req);
+  await checkShiftDeviceIntegrity(checkin.shiftId, user.id, ctx, checkin.id);
+  const clientNowRaw = form.get("clientNow");
+  if (clientNowRaw) {
+    await checkClockSkew({
+      guardId: user.id,
+      shiftId: checkin.shiftId,
+      checkinId: checkin.id,
+      clientTimeMs: Number(clientNowRaw),
+      source: "check-in upload",
+    });
+  }
+
   const buffer = Buffer.from(await file.arrayBuffer());
   const mime = file.type || "application/octet-stream";
   const isVideo = mime.startsWith("video/");
@@ -65,6 +85,19 @@ export async function POST(req: Request) {
     pingSentAt: checkin.sentAt,
   });
   if (!verdict.ok) {
+    // Record the ATTEMPT so dispatch can see who tries to cheat.
+    if (verdict.flagType) {
+      await raiseFlag({
+        guardId: user.id,
+        shiftId: checkin.shiftId,
+        checkinId: checkin.id,
+        type: verdict.flagType,
+        severity: "warn",
+        notify: true,
+        detail: `Rejected upload during check-in: ${verdict.reason}`,
+        meta: { captureMethod, mime, fileName: file.name, ip: ctx.ip },
+      });
+    }
     return NextResponse.json({ error: verdict.reason }, { status: 422 });
   }
 
@@ -78,6 +111,16 @@ export async function POST(req: Request) {
     await prisma.checkin.update({
       where: { id: checkin.id },
       data: { isForwarded: true },
+    });
+    await raiseFlag({
+      guardId: user.id,
+      shiftId: checkin.shiftId,
+      checkinId: checkin.id,
+      type: "reused_media_rejected",
+      severity: "warn",
+      notify: true,
+      detail: `Tried to reuse a previously-uploaded file for this check-in (same file hash as check-in ${reused.id}).`,
+      meta: { hash, previousCheckinId: reused.id, ip: ctx.ip },
     });
     return NextResponse.json(
       { error: "This exact file was already used for another check-in. Take a NEW photo or video now." },
@@ -109,6 +152,9 @@ export async function POST(req: Request) {
         takenAt: verdict.takenAt ? verdict.takenAt.toISOString() : null,
         fileName: file.name,
         fileSize: buffer.length,
+        ip: ctx.ip,
+        userAgent: ctx.userAgent,
+        deviceId: ctx.deviceId,
       },
     },
   });

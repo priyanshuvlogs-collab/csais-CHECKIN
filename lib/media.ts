@@ -10,6 +10,8 @@ export type MediaVerdict = {
   source: "live" | "gallery" | "unverified";
   reason?: string;
   takenAt?: Date | null;
+  /** SecurityFlag type to raise when the upload is rejected. */
+  flagType?: string;
 };
 
 const ALLOWED_MIME = [
@@ -81,6 +83,7 @@ export async function verdictForUpload(opts: {
       ok: false,
       source: "gallery",
       reason: "Gallery and file uploads are not accepted. Use the live camera.",
+      flagType: "file_picker_rejected",
     };
   }
   if (isVideo && durationSeconds != null && durationSeconds > MAX_VIDEO_SECONDS) {
@@ -88,6 +91,7 @@ export async function verdictForUpload(opts: {
       ok: false,
       source: "gallery",
       reason: `Video is longer than ${MAX_VIDEO_SECONDS} seconds. Record a shorter one.`,
+      flagType: "long_video_rejected",
     };
   }
 
@@ -105,6 +109,7 @@ export async function verdictForUpload(opts: {
       source: "gallery",
       reason:
         "This file was created before the check-in ping. Old or gallery files are rejected — take a new photo now.",
+      flagType: "gallery_rejected",
     };
   }
 
@@ -125,6 +130,7 @@ export async function verdictForUpload(opts: {
             reason:
               "The photo's capture time is before this check-in ping. Gallery or old photos are rejected — take a new photo now.",
             takenAt,
+            flagType: "gallery_rejected",
           };
         }
         // EXIF confirms capture during the ping window.

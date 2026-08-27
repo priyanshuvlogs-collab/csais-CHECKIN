@@ -108,14 +108,33 @@ The same report is **delivered automatically to every admin at 7:00 AM
 Toronto time** as an in-app notification (and by email when SMTP is
 configured in `.env`).
 
-## 9. Admins page
+## 9. Security page (anti-cheat)
+
+**Dispatch → Security** lists every anti-cheat flag from the last 7 days.
+Guards with flags also show a red **⚠ n** badge on their live-board card.
+
+What the system detects and how:
+
+| Cheat attempt | Defence |
+| --- | --- |
+| Changing the phone clock to get more time | Impossible by design — all deadlines and timestamps use the **server clock**. A device clock off by more than 3 minutes is additionally flagged (`clock_skew`). |
+| Sending an old/gallery photo | Rejected before it counts (EXIF capture time and file `lastModified` must not predate the ping) and logged as `gallery_rejected`. |
+| Reusing the same photo/video twice | Rejected by file-hash matching and logged as `reused_media_rejected`. |
+| Uploading via a normal file picker | Rejected and logged as `file_picker_rejected`. |
+| Handing the link to someone off-site / VPN switching | Each shift is bound to the IP it started from; a new IP mid-shift raises `ip_change` (warn — WiFi→cellular can also cause this, use judgement). |
+| Someone else answering pings on another phone | Each shift is bound to the starting device (browser device-id + user agent); a different device mid-shift raises `device_change` (**critical**). |
+| Fake/mock GPS apps | GPS jumps faster than ~150 km/h raise `impossible_speed` (**critical**); perfect 0 m accuracy raises `mock_gps`; replayed fixes with wrong timestamps raise `gps_time_mismatch`. |
+
+Critical flags alert every admin immediately, like a missed check-in.
+
+## 10. Admins page
 
 - **Add an admin** with full name, email (their login) and a password.
 - **Every admin receives every notification** — there is no per-site split.
 - **Remove admin** turns that account into a guard account. You cannot remove
   yourself, and the last remaining admin can never be removed.
 
-## 10. Notifications you will receive
+## 11. Notifications you will receive
 
 | Event | What it means |
 | --- | --- |

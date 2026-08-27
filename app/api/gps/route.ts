@@ -6,6 +6,11 @@ import { haversineMeters, mapsLink } from "@/lib/geo";
 import { notifyAdmins } from "@/lib/notify";
 import { fmtDateTime } from "@/lib/time";
 import { MOVE_NOTIFY_METERS } from "@/lib/constants";
+import {
+  checkGpsIntegrity,
+  checkShiftDeviceIntegrity,
+  getRequestContext,
+} from "@/lib/security";
 
 const schema = z.object({
   lat: z.number().min(-90).max(90),
@@ -38,9 +43,26 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "No active shift. Start a shift first." }, { status: 400 });
   }
 
+  // Anti-cheat: same device/IP as shift start; spoof heuristics below.
+  const ctx = getRequestContext(req);
+  await checkShiftDeviceIntegrity(shift.id, user.id, ctx, d.checkinId ?? null);
+
   const previous = await prisma.location.findFirst({
     where: { shiftId: shift.id },
     orderBy: { serverAt: "desc" },
+  });
+
+  await checkGpsIntegrity({
+    guardId: user.id,
+    shiftId: shift.id,
+    checkinId: d.checkinId ?? null,
+    lat: d.lat,
+    lng: d.lng,
+    accuracy: d.accuracy ?? null,
+    clientAt: new Date(d.clientAt),
+    previous: previous
+      ? { lat: previous.lat, lng: previous.lng, serverAt: previous.serverAt }
+      : null,
   });
   const lastNotified = await prisma.location.findFirst({
     where: { shiftId: shift.id, extra: { path: ["notified"], equals: true } },
@@ -78,6 +100,9 @@ export async function POST(req: Request) {
         movedSinceNotified,
         notified: shouldNotify,
         mode: d.isLive ? "live-watch" : "one-time",
+        ip: ctx.ip,
+        userAgent: ctx.userAgent,
+        deviceId: ctx.deviceId,
       },
     },
   });

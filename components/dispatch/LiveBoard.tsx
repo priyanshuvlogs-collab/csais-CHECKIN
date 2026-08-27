@@ -16,6 +16,7 @@ type WaitingRow = {
   pingedAt: string;
   deadlineAt: string;
   gps: Gps;
+  flagCount: number;
 };
 
 type MissedRow = {
@@ -38,6 +39,7 @@ type OnDutyRow = {
   nextPingAt: string;
   lastCheckinStatus: string | null;
   gps: Gps;
+  flagCount: number;
 };
 
 type Board = {
@@ -94,6 +96,21 @@ export function LiveBoard() {
 
   return (
     <div className="space-y-8">
+      {/* Summary strip */}
+      <div className="grid grid-cols-3 gap-3">
+        <StatCard
+          label="Missed — call now"
+          value={board.missed.length}
+          tone={board.missed.length > 0 ? "danger" : "ok"}
+        />
+        <StatCard
+          label="Waiting for photo"
+          value={board.waiting.length}
+          tone={board.waiting.length > 0 ? "warn" : "ok"}
+        />
+        <StatCard label="On duty" value={board.onDuty.length + board.waiting.length} tone="ok" />
+      </div>
+
       {/* MISSED */}
       <section>
         <h2 className="mb-3 text-lg font-black uppercase tracking-wide text-danger">
@@ -167,7 +184,10 @@ export function LiveBoard() {
               return (
                 <div key={w.checkinId} className="rounded-xl border-2 border-warn bg-surface p-4">
                   <div className="flex items-center justify-between">
-                    <p className="font-black">{w.name}</p>
+                    <p className="font-black">
+                      {w.name}
+                      <FlagBadge count={w.flagCount} />
+                    </p>
                     <span className={`font-mono text-2xl font-black ${left < 60000 ? "text-danger" : "text-warn"}`}>
                       {fmtCountdown(left)}
                     </span>
@@ -204,7 +224,10 @@ export function LiveBoard() {
             {board.onDuty.map((g) => (
               <div key={g.shiftId} className="rounded-xl border border-line bg-surface p-4">
                 <div className="flex items-center justify-between">
-                  <p className="font-black">{g.name}</p>
+                  <p className="font-black">
+                    {g.name}
+                    <FlagBadge count={g.flagCount} />
+                  </p>
                   <span className="font-mono text-lg font-bold text-accent">
                     {fmtCountdown(new Date(g.nextPingAt).getTime() - serverNow)}
                   </span>
@@ -250,6 +273,38 @@ export function LiveBoard() {
         )}
       </section>
     </div>
+  );
+}
+
+function StatCard({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: number;
+  tone: "ok" | "warn" | "danger";
+}) {
+  const color =
+    tone === "danger" ? "text-danger" : tone === "warn" ? "text-warn" : "text-accent";
+  return (
+    <div className="rounded-xl border border-line bg-surface px-4 py-3 text-center">
+      <p className={`text-3xl font-black ${color}`}>{value}</p>
+      <p className="text-xs font-semibold uppercase tracking-wide text-muted">{label}</p>
+    </div>
+  );
+}
+
+function FlagBadge({ count }: { count: number }) {
+  if (count === 0) return null;
+  return (
+    <Link
+      href="/dispatch/security"
+      className="ml-2 rounded border border-danger bg-danger/15 px-1.5 py-0.5 align-middle text-xs font-black text-danger"
+      title="Security flags this shift — click to review"
+    >
+      ⚠ {count}
+    </Link>
   );
 }
 
