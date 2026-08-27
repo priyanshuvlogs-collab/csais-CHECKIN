@@ -15,7 +15,7 @@ export default async function GuardLayout({
 
   return (
     <div className="mx-auto min-h-screen max-w-lg px-4 pb-10">
-      <header className="flex items-center justify-between py-4">
+      <header className="sticky top-0 z-40 -mx-4 mb-2 flex items-center justify-between border-b border-line bg-background/90 px-4 py-3 backdrop-blur">
         <div>
           <div className="text-xl font-black tracking-tight">
             CSAIS <span className="text-accent">GUARD</span>

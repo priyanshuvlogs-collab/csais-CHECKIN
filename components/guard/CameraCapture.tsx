@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { deviceHeaders } from "@/lib/deviceId";
 
 const MAX_VIDEO_SECONDS = 45;
 
@@ -144,10 +145,15 @@ export function CameraCapture({ checkinId, onDone }: Props) {
     form.append("file", new File([blob], opts.fileName, { type: blob.type, lastModified: opts.lastModified ?? Date.now() }));
     form.append("checkinId", checkinId);
     form.append("captureMethod", opts.captureMethod);
+    form.append("clientNow", String(Date.now()));
     if (opts.duration != null) form.append("durationSeconds", String(opts.duration));
     if (opts.lastModified != null) form.append("clientLastModified", String(opts.lastModified));
     try {
-      const res = await fetch("/api/checkin/upload", { method: "POST", body: form });
+      const res = await fetch("/api/checkin/upload", {
+        method: "POST",
+        body: form,
+        headers: deviceHeaders(),
+      });
       const data = await res.json();
       if (!res.ok) {
         setError(data.error || "Upload failed. Try again.");

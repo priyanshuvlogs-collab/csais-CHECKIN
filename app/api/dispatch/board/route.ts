@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/auth";
 import { FIRST_PING_DELAY_MS, PING_INTERVAL_MS } from "@/lib/constants";
 import { mapsLink } from "@/lib/geo";
+import { flagCountsByShift } from "@/lib/security";
 
 export const dynamic = "force-dynamic";
 
@@ -25,6 +26,8 @@ export async function GET() {
     },
     orderBy: { startedAt: "asc" },
   });
+
+  const flagCounts = await flagCountsByShift(shifts.map((s) => s.id));
 
   const waiting: unknown[] = [];
   const onDuty: unknown[] = [];
@@ -50,6 +53,7 @@ export async function GET() {
       site: s.siteName,
       startedAt: s.startedAt.toISOString(),
       gps,
+      flagCount: flagCounts.get(s.id) ?? 0,
     };
 
     if (last?.status === "pending") {

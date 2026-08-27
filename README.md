@@ -23,6 +23,12 @@ timestamps so dispatch can call them.
   rejected, EXIF capture time before the ping rejected as gallery, videos
   longer than 45 s rejected, EXIF-less camera-app photos accepted but flagged
   `UNVERIFIED`.
+- **Anti-cheat engine** — server-clock-only deadlines (device clock changes
+  can never extend a window; big skews are flagged), each shift bound to the
+  starting device + IP (different device mid-shift = critical alert, new IP =
+  warning), GPS spoof detection (impossible speed, mock-provider accuracy,
+  replayed fixes), and every rejected cheat attempt logged to a Security page
+  for dispatch with live-board ⚠ badges.
 - **Background worker** (in-process, started with the server) — sends due
   pings (first ~15 s after shift start, then every 15 min), expires pending
   check-ins after 5 min and fires the CALL NOW alert, auto-ends 12 h shifts,

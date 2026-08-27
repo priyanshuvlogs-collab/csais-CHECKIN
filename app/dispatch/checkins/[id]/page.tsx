@@ -29,6 +29,11 @@ export default async function CheckinDetailPage({
   });
   if (!checkin) notFound();
 
+  const flags = await prisma.securityFlag.findMany({
+    where: { OR: [{ checkinId: id }, { shiftId: checkin.shiftId }] },
+    orderBy: { createdAt: "desc" },
+  });
+
   const mediaUrl = checkin.mediaPath
     ? `/api/media/${checkin.mediaPath.split("\\").join("/")}`
     : null;
@@ -94,7 +99,42 @@ export default async function CheckinDetailPage({
               <span className="break-all font-mono text-xs">{checkin.mediaHash}</span>
             </Row>
           )}
+          {typeof extra.ip === "string" && <Row label="Upload IP">{extra.ip}</Row>}
         </dl>
+
+        <h2 className="mt-6 text-lg font-black">
+          Security flags for this shift ({flags.length})
+        </h2>
+        {flags.length === 0 ? (
+          <p className="mt-2 rounded-xl border border-line bg-surface p-4 text-sm text-muted">
+            No anti-cheat flags. All clear.
+          </p>
+        ) : (
+          <ul className="mt-2 space-y-2">
+            {flags.map((f) => (
+              <li
+                key={f.id}
+                className={`rounded-xl border bg-surface p-3 text-sm ${
+                  f.severity === "critical" ? "border-danger" : "border-warn/60"
+                }`}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span
+                    className={`rounded px-2 py-0.5 text-xs font-black uppercase ${
+                      f.severity === "critical"
+                        ? "bg-danger/20 text-danger"
+                        : "bg-warn/20 text-warn"
+                    }`}
+                  >
+                    {f.severity} · {f.type.replace(/_/g, " ")}
+                  </span>
+                  <span className="text-xs text-muted">{fmtDateTime(f.createdAt)}</span>
+                </div>
+                <p className="mt-1">{f.detail}</p>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
 
       <section>

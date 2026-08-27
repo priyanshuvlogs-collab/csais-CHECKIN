@@ -4,8 +4,12 @@ import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/auth";
 import { notifyAdmins } from "@/lib/notify";
 import { fmtDateTime } from "@/lib/time";
+import { checkClockSkew, getRequestContext } from "@/lib/security";
 
-const schema = z.object({ siteName: z.string().min(2).max(120) });
+const schema = z.object({
+  siteName: z.string().min(2).max(120),
+  clientNow: z.number().optional(),
+});
 
 export async function POST(req: Request) {
   const user = await getSessionUser();
@@ -50,6 +54,10 @@ export async function POST(req: Request) {
     await prisma.site.create({ data: { name: siteName, active: true } });
   }
 
+  // Device baseline for the anti-cheat checks: later requests in this shift
+  // must come from the same IP/device or dispatch gets flagged.
+  const ctx = getRequestContext(req);
+
   const now = new Date();
   const shift = await prisma.shift.create({
     data: {
@@ -57,8 +65,22 @@ export async function POST(req: Request) {
       siteName: canonicalName,
       startedAt: now,
       active: true,
+      extra: {
+        ip: ctx.ip,
+        userAgent: ctx.userAgent,
+        deviceId: ctx.deviceId,
+      },
     },
   });
+
+  if (parsed.data.clientNow) {
+    await checkClockSkew({
+      guardId: user.id,
+      shiftId: shift.id,
+      clientTimeMs: parsed.data.clientNow,
+      source: "shift start",
+    });
+  }
 
   await notifyAdmins({
     type: "shift_start",
